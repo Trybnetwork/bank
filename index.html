@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Erudite Union Bank — Demo Online Banking</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  :root {
+    --navy: #0a2540; --navy-dark: #06182b; --green: #0e9f6e; --green-dark: #0b7a55;
+    --gold: #c9a227; --bg: #f2f5f9; --card: #ffffff; --text: #1c2b3a; --muted: #6b7c93;
+    --red: #dc2626;
+  }
+  body { font-family: "Segoe UI", Arial, Helvetica, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+  .demo-strip { background: var(--gold); color: #3a2f00; text-align: center; font-size: .8rem; font-weight: 800; letter-spacing: 1px; padding: .45rem; text-transform: uppercase; }
+
+  /* Login */
+  #login-view { min-height: calc(100vh - 32px); display: flex; align-items: center; justify-content: center; padding: 2rem 1rem;
+    background: linear-gradient(135deg, var(--navy-dark), var(--navy)); }
+  .login-card { background: var(--card); border-radius: 16px; padding: 2.6rem; width: 400px; max-width: 100%; box-shadow: 0 20px 60px rgba(0,0,0,.35); text-align: center; }
+  .bank-mark { width: 58px; height: 58px; border-radius: 14px; background: var(--navy); color: var(--gold); font-size: 1.7rem; font-weight: 900;
+    display: flex; align-items: center; justify-content: center; margin: 0 auto 1rem; }
+  .login-card h1 { color: var(--navy); font-size: 1.5rem; margin-bottom: .3rem; }
+  .login-card .tagline { color: var(--muted); font-size: .9rem; margin-bottom: 1.8rem; }
+  .login-card input { width: 100%; padding: .9rem 1rem; margin-bottom: 1rem; border: 2px solid #dbe3ec; border-radius: 8px; font-size: 1rem; outline: none; }
+  .login-card input:focus { border-color: var(--green); }
+  .btn { width: 100%; background: var(--green); color: #fff; border: none; padding: .95rem; border-radius: 8px; font-size: 1.05rem; font-weight: 700; cursor: pointer; }
+  .btn:hover { background: var(--green-dark); }
+  .demo-hint { margin-top: 1.2rem; font-size: .82rem; color: var(--muted); background: #f8fafc; border-radius: 8px; padding: .8rem; }
+
+  /* Dashboard */
+  #dash-view { display: none; min-height: calc(100vh - 32px); }
+  .dash-header { background: var(--navy); color: #fff; padding: 1rem 2rem; display: flex; justify-content: space-between; align-items: center; }
+  .dash-header .brand { font-weight: 800; font-size: 1.15rem; }
+  .dash-header .brand span { color: var(--gold); }
+  .logout { background: transparent; color: #fff; border: 1px solid rgba(255,255,255,.4); padding: .5rem 1.2rem; border-radius: 8px; cursor: pointer; font-weight: 600; }
+  .logout:hover { background: rgba(255,255,255,.1); }
+  .dash-body { max-width: 760px; margin: auto; padding: 2rem 1.2rem; }
+  .greeting { font-size: 1.4rem; color: var(--navy); margin-bottom: 1.4rem; }
+  .greeting small { display: block; font-size: .9rem; color: var(--muted); font-weight: 400; }
+  .balance-card { background: linear-gradient(135deg, var(--navy), #123a63); color: #fff; border-radius: 16px; padding: 2rem; margin-bottom: 1.6rem; box-shadow: 0 10px 30px rgba(10,37,64,.25); }
+  .balance-card .acct { font-size: .85rem; letter-spacing: 1px; text-transform: uppercase; opacity: .75; margin-bottom: .4rem; }
+  .balance-card .amount { font-size: 2.6rem; font-weight: 800; margin-bottom: .3rem; }
+  .balance-card .avail { font-size: .9rem; opacity: .75; }
+  .actions { display: flex; gap: .8rem; margin-bottom: 1.8rem; flex-wrap: wrap; }
+  .action-btn { flex: 1; min-width: 140px; background: var(--card); border: 1px solid #e2e8f0; border-radius: 10px; padding: .9rem; font-weight: 700; color: var(--navy); cursor: pointer; font-size: .95rem; }
+  .action-btn:hover { border-color: var(--green); color: var(--green-dark); }
+  .txns { background: var(--card); border-radius: 14px; padding: 1.4rem 1.6rem; box-shadow: 0 4px 18px rgba(10,37,64,.08); }
+  .txns h3 { color: var(--navy); margin-bottom: 1rem; font-size: 1.1rem; }
+  .txn { display: flex; justify-content: space-between; align-items: center; padding: .9rem 0; border-bottom: 1px solid #eef2f7; }
+  .txn:last-child { border-bottom: none; }
+  .txn .desc { font-weight: 600; color: var(--navy); }
+  .txn .date { font-size: .82rem; color: var(--muted); }
+  .txn .amt { font-weight: 800; color: var(--red); }
+  .demo-foot { text-align: center; color: var(--muted); font-size: .8rem; margin-top: 2rem; padding-bottom: 1rem; }
+</style>
+</head>
+<body>
+<div class="demo-strip">Demo — fictional bank, sample data only</div>
+
+<!-- LOGIN -->
+<div id="login-view">
+  <div class="login-card">
+    <div class="bank-mark">E</div>
+    <h1>Erudite Union Bank</h1>
+    <p class="tagline">Online Banking Sign In</p>
+    <input type="text" id="username" placeholder="Username" autocomplete="off">
+    <input type="password" id="password" placeholder="Password">
+    <button class="btn" onclick="login()">Sign In</button>
+    <div class="demo-hint">Demo only — enter anything to sign in. No real accounts exist here.</div>
+  </div>
+</div>
+
+<!-- DASHBOARD -->
+<div id="dash-view">
+  <div class="dash-header">
+    <div class="brand"><span>E</span> Erudite Union Bank</div>
+    <button class="logout" onclick="logout()">Log Out</button>
+  </div>
+  <div class="dash-body">
+    <div class="greeting">Welcome back, Sarah Thomas<small>Last sign in: Oct 2, 2026</small></div>
+    <div class="balance-card">
+      <div class="acct">Checking ••8830</div>
+      <div class="amount">$352,864.18</div>
+      <div class="avail">Available balance · USD</div>
+    </div>
+    <div class="actions">
+      <button class="action-btn" onclick="demoAction('Transfer')">Transfer</button>
+      <button class="action-btn" onclick="demoAction('Bill Pay')">Bill Pay</button>
+      <button class="action-btn" onclick="demoAction('Deposit')">Deposit</button>
+    </div>
+    <div class="txns">
+      <h3>Recent Transactions</h3>
+      <div class="txn">
+        <div><div class="desc">Transfer to Luke Lambert ···001468</div><div class="date">10/02/2026</div></div>
+        <div class="amt">−$1,300.00</div>
+      </div>
+      <div class="txn">
+        <div><div class="desc">Zelle to Josephine Andrews</div><div class="date">09/28/2026</div></div>
+        <div class="amt">−$500.00</div>
+      </div>
+      <div class="txn">
+        <div><div class="desc">ATM Withdrawal — Magnolia, TX ···1400866</div><div class="date">09/16/2026</div></div>
+        <div class="amt">−$300.00</div>
+      </div>
+    </div>
+    <div class="demo-foot">Demo prototype — all names, numbers, and balances are fictional.</div>
+  </div>
+</div>
+
+<script>
+function login() {
+  document.getElementById("login-view").style.display = "none";
+  document.getElementById("dash-view").style.display = "block";
+  window.scrollTo(0, 0);
+}
+function logout() {
+  document.getElementById("password").value = "";
+  document.getElementById("dash-view").style.display = "none";
+  document.getElementById("login-view").style.display = "flex";
+}
+function demoAction(name) {
+  alert(name + " is disabled in this demo.");
+}
+document.getElementById("password").addEventListener("keydown", function (e) {
+  if (e.key === "Enter") login();
+});
+</script>
+</body>
+</html>
