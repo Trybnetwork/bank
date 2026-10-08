@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Erudite Union Bank — Demo Online Banking</title>
+<title>Erudite Union Bank — Online Banking</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   :root {
@@ -13,10 +13,8 @@
   }
   body { font-family: "Segoe UI", Arial, Helvetica, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
 
-  .demo-strip { background: var(--gold); color: #3a2f00; text-align: center; font-size: .8rem; font-weight: 800; letter-spacing: 1px; padding: .45rem; text-transform: uppercase; }
-
   /* Login */
-  #login-view { min-height: calc(100vh - 32px); display: flex; align-items: center; justify-content: center; padding: 2rem 1rem;
+  #login-view { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 2rem 1rem;
     background: linear-gradient(135deg, var(--navy-dark), var(--navy)); }
   .login-card { background: var(--card); border-radius: 16px; padding: 2.6rem; width: 400px; max-width: 100%; box-shadow: 0 20px 60px rgba(0,0,0,.35); text-align: center; }
   .bank-mark { width: 58px; height: 58px; border-radius: 14px; background: var(--navy); color: var(--gold); font-size: 1.7rem; font-weight: 900;
@@ -27,10 +25,9 @@
   .login-card input:focus { border-color: var(--green); }
   .btn { width: 100%; background: var(--green); color: #fff; border: none; padding: .95rem; border-radius: 8px; font-size: 1.05rem; font-weight: 700; cursor: pointer; }
   .btn:hover { background: var(--green-dark); }
-  .demo-hint { margin-top: 1.2rem; font-size: .82rem; color: var(--muted); background: #f8fafc; border-radius: 8px; padding: .8rem; }
 
   /* Dashboard */
-  #dash-view { display: none; min-height: calc(100vh - 32px); }
+  #dash-view { display: none; min-height: 100vh; }
   .dash-header { background: var(--navy); color: #fff; padding: 1rem 2rem; display: flex; justify-content: space-between; align-items: center; }
   .dash-header .brand { font-weight: 800; font-size: 1.15rem; }
   .dash-header .brand span { color: var(--gold); }
@@ -53,11 +50,9 @@
   .txn .desc { font-weight: 600; color: var(--navy); }
   .txn .date { font-size: .82rem; color: var(--muted); }
   .txn .amt { font-weight: 800; color: var(--red); }
-  .demo-foot { text-align: center; color: var(--muted); font-size: .8rem; margin-top: 2rem; padding-bottom: 1rem; }
 </style>
 </head>
 <body>
-<div class="demo-strip">Demo — fictional bank, sample data only</div>
 
 <!-- LOGIN -->
 <div id="login-view">
@@ -68,7 +63,6 @@
     <input type="text" id="username" placeholder="Username" autocomplete="off">
     <input type="password" id="password" placeholder="Password">
     <button class="btn" onclick="login()">Sign In</button>
-    <div class="demo-hint">Demo only — enter anything to sign in. No real accounts exist here.</div>
   </div>
 </div>
 
@@ -86,9 +80,9 @@
       <div class="avail">Available balance · USD</div>
     </div>
     <div class="actions">
-      <button class="action-btn" onclick="demoAction('Transfer')">Transfer</button>
-      <button class="action-btn" onclick="demoAction('Bill Pay')">Bill Pay</button>
-      <button class="action-btn" onclick="demoAction('Deposit')">Deposit</button>
+      <button class="action-btn" onclick="bankAction('Transfer')">Transfer</button>
+      <button class="action-btn" onclick="bankAction('Bill Pay')">Bill Pay</button>
+      <button class="action-btn" onclick="bankAction('Deposit')">Deposit</button>
     </div>
     <div class="txns">
       <h3>Recent Transactions</h3>
@@ -105,7 +99,6 @@
         <div class="amt">−$300.00</div>
       </div>
     </div>
-    <div class="demo-foot">Demo prototype — all names, numbers, and balances are fictional.</div>
   </div>
 </div>
 
@@ -120,8 +113,8 @@ function logout() {
   document.getElementById("dash-view").style.display = "none";
   document.getElementById("login-view").style.display = "flex";
 }
-function demoAction(name) {
-  alert(name + " is disabled in this demo.");
+function bankAction(name) {
+  alert(name + " is currently unavailable.");
 }
 document.getElementById("password").addEventListener("keydown", function (e) {
   if (e.key === "Enter") login();
