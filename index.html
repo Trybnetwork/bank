@@ -135,7 +135,7 @@
         <div class="amt">−$300.00</div>
       </div>
     </div>
-    <button class="reset-link" onclick="resetDemo()">Reset demo data</button>
+    <button class="reset-link" onclick="resetDemo()">Clear transaction history</button>
   </div>
 </div>
 
@@ -184,7 +184,7 @@ function restore() {
   }
 }
 function resetDemo() {
-  if (!confirm("Reset balance and transactions to the original demo data?")) return;
+  if (!confirm("Clear transaction history and reset the balance to $352,864.18?")) return;
   try { localStorage.removeItem(STORE_KEY); } catch (e) {}
   location.reload();
 }
