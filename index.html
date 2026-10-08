@@ -51,6 +51,39 @@
   .txn .desc { font-weight: 600; color: var(--navy); }
   .txn .date { font-size: .82rem; color: var(--muted); }
   .txn .amt { font-weight: 800; color: var(--red); }
+
+  /* Modal */
+  #modal-overlay { position: fixed; inset: 0; background: rgba(6,24,43,.55); backdrop-filter: blur(3px); display: none; align-items: center; justify-content: center; padding: 1rem; z-index: 50; }
+  #modal-overlay.open { display: flex; }
+  .modal { background: #fff; border-radius: 16px; width: 470px; max-width: 100%; max-height: 92vh; overflow-y: auto; box-shadow: 0 24px 70px rgba(0,0,0,.35); animation: pop .18s ease-out; }
+  @keyframes pop { from { transform: translateY(10px) scale(.98); opacity: 0; } }
+  .modal-head { display: flex; justify-content: space-between; align-items: center; padding: 1.25rem 1.5rem; border-bottom: 1px solid #eef2f7; }
+  .modal-head h2 { color: var(--navy); font-size: 1.15rem; }
+  .modal-close { background: none; border: none; font-size: 1.6rem; color: var(--muted); cursor: pointer; line-height: 1; padding: 0 .2rem; }
+  .modal-close:hover { color: var(--navy); }
+  .modal-body { padding: 1.4rem 1.5rem 0; }
+  .field { margin-bottom: 1.05rem; }
+  .field label { display: block; font-size: .8rem; font-weight: 700; color: var(--navy); margin-bottom: .35rem; }
+  .field input, .field select { width: 100%; padding: .78rem .9rem; border: 2px solid #dbe3ec; border-radius: 8px; font-size: .95rem; outline: none; font-family: inherit; background: #fff; color: var(--text); }
+  .field input:focus, .field select:focus { border-color: var(--green); }
+  .field .err { display: none; font-size: .76rem; color: var(--red); margin-top: .3rem; }
+  .field.invalid input, .field.invalid select { border-color: var(--red); }
+  .field.invalid .err { display: block; }
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: .9rem; }
+  .modal-foot { padding: 1.2rem 1.5rem 1.5rem; display: flex; gap: .8rem; }
+  .btn-secondary { flex: 1; background: #eef2f7; color: var(--navy); border: none; padding: .95rem; border-radius: 8px; font-size: 1rem; font-weight: 700; cursor: pointer; }
+  .btn-secondary:hover { background: #e2e8f0; }
+  .modal-foot .btn { flex: 2; }
+  .secure-note { text-align: center; font-size: .75rem; color: var(--muted); padding: 0 1.5rem 1.4rem; }
+  .success-wrap { text-align: center; padding: .6rem 0 0; }
+  .success-check { width: 74px; height: 74px; border-radius: 50%; background: #e6f7ef; color: var(--green); font-size: 2.2rem; font-weight: 900; display: flex; align-items: center; justify-content: center; margin: 0 auto 1.1rem; }
+  .success-wrap h3 { color: var(--navy); font-size: 1.3rem; margin-bottom: .25rem; }
+  .success-amount { font-size: 1.9rem; font-weight: 800; color: var(--navy); margin-bottom: 1.2rem; }
+  .success-details { background: #f8fafc; border-radius: 10px; padding: .9rem 1.2rem; text-align: left; margin-bottom: 1.3rem; }
+  .success-details .row { display: flex; justify-content: space-between; gap: 1rem; padding: .35rem 0; font-size: .87rem; }
+  .success-details .row span:first-child { color: var(--muted); }
+  .success-details .row span:last-child { font-weight: 700; color: var(--navy); text-align: right; }
+  .txn .amt.pos { color: var(--green); }
 </style>
 </head>
 <body>
@@ -74,16 +107,16 @@
     <button class="logout" onclick="logout()">Log Out</button>
   </div>
   <div class="dash-body">
-    <div class="greeting">Welcome back, Sarah Thomas<small>Last sign in: Oct 2, 2026</small></div>
+    <div class="greeting">Welcome back, Ronald Reyes<small>Last sign in: Oct 2, 2026</small></div>
     <div class="balance-card">
       <div class="acct">Checking ••8830</div>
       <div class="amount">$352,864.18</div>
       <div class="avail">Available balance · USD</div>
     </div>
     <div class="actions">
-      <button class="action-btn" onclick="bankAction('Transfer')">Transfer</button>
-      <button class="action-btn" onclick="bankAction('Bill Pay')">Bill Pay</button>
-      <button class="action-btn" onclick="bankAction('Deposit')">Deposit</button>
+      <button class="action-btn" onclick="openModal('transfer')">Transfer</button>
+      <button class="action-btn" onclick="openModal('billpay')">Bill Pay</button>
+      <button class="action-btn" onclick="openModal('deposit')">Deposit</button>
     </div>
     <div class="txns">
       <h3>Recent Transactions</h3>
@@ -103,6 +136,18 @@
   </div>
 </div>
 
+
+<!-- MODAL -->
+<div id="modal-overlay">
+  <div class="modal" role="dialog" aria-modal="true">
+    <div class="modal-head">
+      <h2 id="modal-title">Transfer</h2>
+      <button class="modal-close" onclick="closeModal()" aria-label="Close">&times;</button>
+    </div>
+    <div id="modal-content"></div>
+  </div>
+</div>
+
 <script>
 function login() {
   document.getElementById("login-view").style.display = "none";
@@ -114,9 +159,171 @@ function logout() {
   document.getElementById("dash-view").style.display = "none";
   document.getElementById("login-view").style.display = "flex";
 }
-function bankAction(name) {
-  alert(name + " is currently unavailable.");
+let balance = 352864.18;
+const todayStr = () => { const d = new Date(); return String(d.getMonth()+1).padStart(2,"0") + "/" + String(d.getDate()).padStart(2,"0") + "/" + d.getFullYear(); };
+const fmt = n => "$" + n.toLocaleString("en-US", {minimumFractionDigits: 2, maximumFractionDigits: 2});
+const refNum = () => "ALB" + Date.now().toString().slice(-8);
+const parseAmt = s => { const v = parseFloat(String(s).replace(/[$,\s]/g, "")); return isNaN(v) ? 0 : v; };
+
+function openModal(type) {
+  const titles = { transfer: "Transfer Funds", billpay: "Pay a Bill", deposit: "Make a Deposit" };
+  document.getElementById("modal-title").textContent = titles[type];
+  const builders = { transfer: transferForm, billpay: billpayForm, deposit: depositForm };
+  document.getElementById("modal-content").innerHTML = builders[type]();
+  document.getElementById("modal-overlay").classList.add("open");
+  document.body.style.overflow = "hidden";
 }
+function closeModal() {
+  document.getElementById("modal-overlay").classList.remove("open");
+  document.body.style.overflow = "";
+}
+document.getElementById("modal-overlay").addEventListener("click", e => { if (e.target.id === "modal-overlay") closeModal(); });
+document.addEventListener("keydown", e => { if (e.key === "Escape") closeModal(); });
+
+function fieldHTML(id, label, inner, err) {
+  return '<div class="field" id="f-' + id + '"><label for="' + id + '">' + label + '</label>' + inner +
+    '<div class="err">' + (err || "This field is required.") + '</div></div>';
+}
+function setInvalid(id, bad) { document.getElementById("f-" + id).classList.toggle("invalid", bad); return !bad; }
+const val = id => document.getElementById(id).value.trim();
+
+function transferForm() {
+  return '<div class="modal-body">' +
+    fieldHTML("t-from", "From account",
+      '<select id="t-from"><option>Checking \u2022\u20228830 \u2014 ' + fmt(balance) + ' available</option></select>') +
+    fieldHTML("t-acct", "Recipient account number",
+      '<input id="t-acct" inputmode="numeric" placeholder="e.g. 000123456789" maxlength="17">', "Enter a valid account number (8\u201317 digits).") +
+    '<div class="form-row">' +
+    fieldHTML("t-routing", "Routing number",
+      '<input id="t-routing" inputmode="numeric" placeholder="9 digits" maxlength="9">', "Routing number must be 9 digits.") +
+    fieldHTML("t-type", "Account type",
+      '<select id="t-type"><option>Checking</option><option>Savings</option></select>') +
+    '</div>' +
+    '<div class="form-row">' +
+    fieldHTML("t-amount", "Amount",
+      '<input id="t-amount" inputmode="decimal" placeholder="$0.00">', "Enter an amount up to your available balance.") +
+    fieldHTML("t-note", "Note (optional)", '<input id="t-note" placeholder="Memo">') +
+    '</div></div>' +
+    '<div class="modal-foot"><button class="btn-secondary" onclick="closeModal()">Cancel</button>' +
+    '<button class="btn" onclick="submitTransfer()">Confirm Transfer</button></div>' +
+    '<div class="secure-note">Transfers are processed securely and usually arrive within 1\u20132 business days.</div>';
+}
+function billpayForm() {
+  return '<div class="modal-body">' +
+    fieldHTML("b-payee", "Payee / biller",
+      '<input id="b-payee" list="billers" placeholder="e.g. City Power & Light"><datalist id="billers"><option>City Power &amp; Light</option><option>Metro Water Utility</option><option>SwiftNet Internet</option><option>Meridian Credit Card</option><option>Greenfield Property Mgmt</option></datalist>') +
+    '<div class="form-row">' +
+    fieldHTML("b-acct", "Payee account number",
+      '<input id="b-acct" inputmode="numeric" placeholder="Account with biller" maxlength="20">') +
+    fieldHTML("b-cat", "Category",
+      '<select id="b-cat"><option>Utilities</option><option>Internet &amp; Phone</option><option>Rent / Mortgage</option><option>Credit Card</option><option>Insurance</option><option>Other</option></select>') +
+    '</div>' +
+    '<div class="form-row">' +
+    fieldHTML("b-amount", "Amount",
+      '<input id="b-amount" inputmode="decimal" placeholder="$0.00">', "Enter an amount up to your available balance.") +
+    fieldHTML("b-date", "Payment date", '<input id="b-date" type="date">') +
+    '</div></div>' +
+    '<div class="modal-foot"><button class="btn-secondary" onclick="closeModal()">Cancel</button>' +
+    '<button class="btn" onclick="submitBillpay()">Confirm Payment</button></div>' +
+    '<div class="secure-note">Scheduled payments can be cancelled any time before the payment date.</div>';
+}
+function depositForm() {
+  return '<div class="modal-body">' +
+    fieldHTML("d-to", "To account",
+      '<select id="d-to"><option>Checking \u2022\u20228830</option></select>') +
+    '<div class="form-row">' +
+    fieldHTML("d-amount", "Amount",
+      '<input id="d-amount" inputmode="decimal" placeholder="$0.00">', "Enter an amount greater than $0.") +
+    fieldHTML("d-method", "Deposit method",
+      '<select id="d-method" onchange="toggleCheckField(this.value)"><option>Cash</option><option>Check</option></select>') +
+    '</div>' +
+    '<div id="check-wrap" style="display:none">' +
+    fieldHTML("d-check", "Check number", '<input id="d-check" inputmode="numeric" placeholder="e.g. 1042" maxlength="10">') +
+    '</div></div>' +
+    '<div class="modal-foot"><button class="btn-secondary" onclick="closeModal()">Cancel</button>' +
+    '<button class="btn" onclick="submitDeposit()">Confirm Deposit</button></div>' +
+    '<div class="secure-note">Check deposits are subject to standard funds-availability holds.</div>';
+}
+function toggleCheckField(v) { document.getElementById("check-wrap").style.display = v === "Check" ? "block" : "none"; }
+
+function submitTransfer() {
+  let ok = true;
+  const acct = val("t-acct"), routing = val("t-routing"), amt = parseAmt(val("t-amount"));
+  ok = setInvalid("t-acct", !/^\d{8,17}$/.test(acct)) && ok;
+  ok = setInvalid("t-routing", !/^\d{9}$/.test(routing)) && ok;
+  ok = setInvalid("t-amount", !(amt > 0 && amt <= balance)) && ok;
+  if (!ok) return;
+  const note = val("t-note");
+  balance -= amt; updateBalance();
+  addTxn("Transfer to \u2022\u2022" + acct.slice(-4) + (note ? " \u2014 " + note : ""), "-" + fmt(amt), false);
+  showSuccess(amt, [
+    ["From", "Checking \u2022\u20228830"],
+    ["To", "Acct \u2022\u2022" + acct.slice(-4) + " (" + val("t-type") + ")"],
+    ["Reference", refNum()],
+    ["Date", todayStr()]
+  ]);
+}
+function submitBillpay() {
+  let ok = true;
+  const payee = val("b-payee"), amt = parseAmt(val("b-amount"));
+  ok = setInvalid("b-payee", !payee) && ok;
+  ok = setInvalid("b-acct", !val("b-acct")) && ok;
+  ok = setInvalid("b-amount", !(amt > 0 && amt <= balance)) && ok;
+  if (!ok) return;
+  let pdate = val("b-date") || new Date().toISOString().slice(0, 10);
+  balance -= amt; updateBalance();
+  addTxn("Bill Pay \u2014 " + payee, "-" + fmt(amt), false);
+  showSuccess(amt, [
+    ["Payee", payee],
+    ["Category", document.getElementById("b-cat").selectedOptions[0].text],
+    ["Reference", refNum()],
+    ["Payment date", pdate]
+  ]);
+}
+function submitDeposit() {
+  let ok = true;
+  const amt = parseAmt(val("d-amount")), method = val("d-method");
+  ok = setInvalid("d-amount", !(amt > 0 && amt <= 1000000)) && ok;
+  if (method === "Check") ok = setInvalid("d-check", !/^\d{1,10}$/.test(val("d-check"))) && ok;
+  if (!ok) return;
+  balance += amt; updateBalance();
+  addTxn("Deposit \u2014 " + method + (method === "Check" ? " #" + val("d-check") : ""), "+" + fmt(amt), true);
+  showSuccess(amt, [
+    ["To", "Checking \u2022\u20228830"],
+    ["Method", method + (method === "Check" ? " #" + val("d-check") : "")],
+    ["Reference", refNum()],
+    ["Date", todayStr()]
+  ]);
+}
+
+function showSuccess(amt, rows) {
+  document.getElementById("modal-title").textContent = "Confirmation";
+  const detail = rows.map(r => '<div class="row"><span>' + r[0] + '</span><span>' + escapeHtml(r[1]) + '</span></div>').join("");
+  document.getElementById("modal-content").innerHTML =
+    '<div class="modal-body"><div class="success-wrap">' +
+    '<div class="success-check">\u2713</div><h3>Transaction Successful</h3>' +
+    '<div class="success-amount">' + fmt(amt) + '</div>' +
+    '<div class="success-details">' + detail + '</div>' +
+    '</div></div>' +
+    '<div class="modal-foot"><button class="btn" style="flex:1" onclick="closeModal()">Done</button></div>';
+}
+function escapeHtml(s) { return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;"); }
+function updateBalance() {
+  document.querySelector(".balance-card .amount").textContent = fmt(balance);
+}
+function addTxn(desc, amtText, positive) {
+  const list = document.querySelector(".txns");
+  const div = document.createElement("div");
+  div.className = "txn";
+  const d1 = document.createElement("div");
+  const dd = document.createElement("div"); dd.className = "desc"; dd.textContent = desc;
+  const dt = document.createElement("div"); dt.className = "date"; dt.textContent = todayStr();
+  d1.appendChild(dd); d1.appendChild(dt);
+  const am = document.createElement("div"); am.className = "amt" + (positive ? " pos" : ""); am.textContent = amtText;
+  div.appendChild(d1); div.appendChild(am);
+  list.insertBefore(div, list.querySelector(".txn"));
+}
+
 document.getElementById("password").addEventListener("keydown", function (e) {
   if (e.key === "Enter") login();
 });
