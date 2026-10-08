@@ -84,6 +84,8 @@
   .success-details .row span:first-child { color: var(--muted); }
   .success-details .row span:last-child { font-weight: 700; color: var(--navy); text-align: right; }
   .txn .amt.pos { color: var(--green); }
+  .reset-link { background: none; border: none; color: var(--muted); font-size: .78rem; cursor: pointer; margin: 1.2rem auto 0; display: block; text-decoration: underline; }
+  .reset-link:hover { color: var(--navy); }
 </style>
 </head>
 <body>
@@ -133,6 +135,7 @@
         <div class="amt">−$300.00</div>
       </div>
     </div>
+    <button class="reset-link" onclick="resetDemo()">Reset demo data</button>
   </div>
 </div>
 
@@ -160,6 +163,31 @@ function logout() {
   document.getElementById("login-view").style.display = "flex";
 }
 let balance = 352864.18;
+const STORE_KEY = "alora_bank_state_v1";
+let customTxns = []; // newest first: {desc, amtText, positive, date}
+function persist() {
+  try { localStorage.setItem(STORE_KEY, JSON.stringify({ balance: balance, txns: customTxns })); } catch (e) {}
+}
+function restore() {
+  try {
+    const raw = localStorage.getItem(STORE_KEY);
+    if (raw) {
+      const s = JSON.parse(raw);
+      if (typeof s.balance === "number" && isFinite(s.balance)) balance = s.balance;
+      if (Array.isArray(s.txns)) customTxns = s.txns.filter(t => t && t.desc);
+    }
+  } catch (e) {}
+  updateBalance();
+  for (let i = customTxns.length - 1; i >= 0; i--) {
+    const t = customTxns[i];
+    renderTxn(t.desc, t.amtText, !!t.positive, t.date || todayStr());
+  }
+}
+function resetDemo() {
+  if (!confirm("Reset balance and transactions to the original demo data?")) return;
+  try { localStorage.removeItem(STORE_KEY); } catch (e) {}
+  location.reload();
+}
 const todayStr = () => { const d = new Date(); return String(d.getMonth()+1).padStart(2,"0") + "/" + String(d.getDate()).padStart(2,"0") + "/" + d.getFullYear(); };
 const fmt = n => "$" + n.toLocaleString("en-US", {minimumFractionDigits: 2, maximumFractionDigits: 2});
 const refNum = () => "ALB" + Date.now().toString().slice(-8);
@@ -311,19 +339,26 @@ function escapeHtml(s) { return String(s).replace(/&/g, "&amp;").replace(/</g, "
 function updateBalance() {
   document.querySelector(".balance-card .amount").textContent = fmt(balance);
 }
-function addTxn(desc, amtText, positive) {
+function renderTxn(desc, amtText, positive, date) {
   const list = document.querySelector(".txns");
   const div = document.createElement("div");
   div.className = "txn";
   const d1 = document.createElement("div");
   const dd = document.createElement("div"); dd.className = "desc"; dd.textContent = desc;
-  const dt = document.createElement("div"); dt.className = "date"; dt.textContent = todayStr();
+  const dt = document.createElement("div"); dt.className = "date"; dt.textContent = date;
   d1.appendChild(dd); d1.appendChild(dt);
   const am = document.createElement("div"); am.className = "amt" + (positive ? " pos" : ""); am.textContent = amtText;
   div.appendChild(d1); div.appendChild(am);
   list.insertBefore(div, list.querySelector(".txn"));
 }
+function addTxn(desc, amtText, positive) {
+  const t = { desc: desc, amtText: amtText, positive: !!positive, date: todayStr() };
+  customTxns.unshift(t);
+  renderTxn(t.desc, t.amtText, t.positive, t.date);
+  persist();
+}
 
+restore();
 document.getElementById("password").addEventListener("keydown", function (e) {
   if (e.key === "Enter") login();
 });
