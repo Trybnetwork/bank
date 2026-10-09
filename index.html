@@ -86,6 +86,17 @@
   .txn .amt.pos { color: var(--green); }
   .reset-link { background: none; border: none; color: var(--muted); font-size: .78rem; cursor: pointer; margin: 1.2rem auto 0; display: block; text-decoration: underline; }
   .reset-link:hover { color: var(--navy); }
+
+  /* Investments */
+  #invest-view { display: none; min-height: 100vh; }
+  .holding { display: flex; justify-content: space-between; align-items: center; padding: .9rem 0; border-bottom: 1px solid #eef2f7; }
+  .holding:last-child { border-bottom: none; }
+  .holding .sym { font-weight: 800; color: var(--navy); }
+  .holding .sym small { display: block; font-weight: 400; font-size: .78rem; color: var(--muted); margin-top: .15rem; }
+  .holding .hval { text-align: right; font-weight: 800; color: var(--navy); }
+  .holding .hval small { display: block; font-weight: 700; font-size: .78rem; margin-top: .15rem; }
+  .up { color: var(--green); }
+  .down { color: var(--red); }
 </style>
 </head>
 <body>
@@ -119,6 +130,8 @@
       <button class="action-btn" onclick="openModal('transfer')">Transfer</button>
       <button class="action-btn" onclick="openModal('billpay')">Bill Pay</button>
       <button class="action-btn" onclick="openModal('deposit')">Deposit</button>
+      <button class="action-btn" onclick="openModal('newaccount')">Open New Account</button>
+      <button class="action-btn" onclick="showInvestments()">Investments</button>
     </div>
     <div class="txns">
       <h3>Recent Transactions</h3>
@@ -140,6 +153,27 @@
 </div>
 
 
+<!-- INVESTMENTS -->
+<div id="invest-view">
+  <div class="dash-header">
+    <div class="brand"><span class="alora-logo brand-logo" aria-hidden="true"></span>Alora Bank</div>
+    <button class="logout" onclick="showDashboard()">Back</button>
+  </div>
+  <div class="dash-body">
+    <div class="greeting">Investments<small>Brokerage account &bull;&bull;6417</small></div>
+    <div class="balance-card">
+      <div class="acct">Total portfolio value</div>
+      <div class="amount" id="inv-total">$0.00</div>
+      <div class="avail" id="inv-pl"></div>
+    </div>
+    <div class="txns">
+      <h3>Holdings</h3>
+      <div id="holdings"></div>
+    </div>
+    <div class="secure-note" style="margin-top:1.2rem">Investments are subject to market risk, including possible loss of principal.</div>
+  </div>
+</div>
+
 <!-- MODAL -->
 <div id="modal-overlay">
   <div class="modal" role="dialog" aria-modal="true">
@@ -160,6 +194,7 @@ function login() {
 function logout() {
   document.getElementById("password").value = "";
   document.getElementById("dash-view").style.display = "none";
+  document.getElementById("invest-view").style.display = "none";
   document.getElementById("login-view").style.display = "flex";
 }
 let balance = 352864.18;
@@ -194,9 +229,9 @@ const refNum = () => "ALB" + Date.now().toString().slice(-8);
 const parseAmt = s => { const v = parseFloat(String(s).replace(/[$,\s]/g, "")); return isNaN(v) ? 0 : v; };
 
 function openModal(type) {
-  const titles = { transfer: "Transfer Funds", billpay: "Pay a Bill", deposit: "Make a Deposit" };
+  const titles = { transfer: "Transfer Funds", billpay: "Pay a Bill", deposit: "Make a Deposit", newaccount: "Open New Account" };
   document.getElementById("modal-title").textContent = titles[type];
-  const builders = { transfer: transferForm, billpay: billpayForm, deposit: depositForm };
+  const builders = { transfer: transferForm, billpay: billpayForm, deposit: depositForm, newaccount: newAccountForm };
   document.getElementById("modal-content").innerHTML = builders[type]();
   document.getElementById("modal-overlay").classList.add("open");
   document.body.style.overflow = "hidden";
@@ -271,6 +306,76 @@ function depositForm() {
     '<div class="modal-foot"><button class="btn-secondary" onclick="closeModal()">Cancel</button>' +
     '<button class="btn" onclick="submitDeposit()">Confirm Deposit</button></div>' +
     '<div class="secure-note">Check deposits are subject to standard funds-availability holds.</div>';
+}
+function newAccountForm() {
+  return '<div class="modal-body">' +
+    fieldHTML("n-name", "Full name",
+      '<input id="n-name" placeholder="e.g. Taylor Kinney" autocomplete="off">') +
+    '<div class="form-row">' +
+    fieldHTML("n-ssn", "SSN",
+      '<input id="n-ssn" inputmode="numeric" placeholder="XXX-XX-XXXX" maxlength="11">', "Enter a valid SSN (9 digits).") +
+    fieldHTML("n-dob", "Date of birth", '<input id="n-dob" type="date">') +
+    '</div>' +
+    '<div class="form-row">' +
+    fieldHTML("n-email", "Email address",
+      '<input id="n-email" type="email" placeholder="you@example.com">', "Enter a valid email address.") +
+    fieldHTML("n-phone", "Phone number",
+      '<input id="n-phone" inputmode="tel" placeholder="(555) 123-4567">', "Enter a valid phone number.") +
+    '</div>' +
+    fieldHTML("n-address", "Street address",
+      '<input id="n-address" placeholder="Street address" autocomplete="off">') +
+    '<div class="form-row">' +
+    fieldHTML("n-city", "City", '<input id="n-city" placeholder="City" autocomplete="off">') +
+    fieldHTML("n-zip", "ZIP code",
+      '<input id="n-zip" inputmode="numeric" placeholder="ZIP" maxlength="10">', "Enter a valid ZIP code.") +
+    '</div>' +
+    '<div class="form-row">' +
+    fieldHTML("n-type", "Account type",
+      '<select id="n-type"><option>Checking</option><option>Savings</option></select>') +
+    fieldHTML("n-deposit", "Initial deposit (optional)",
+      '<input id="n-deposit" inputmode="decimal" placeholder="$0.00">', "Enter an amount greater than $0.") +
+    '</div></div>' +
+    '<div class="modal-foot"><button class="btn-secondary" onclick="closeModal()">Cancel</button>' +
+    '<button class="btn" onclick="submitNewAccount()">Submit Application</button></div>' +
+    '<div class="secure-note">Your information is encrypted and protected. Applications are typically reviewed within 1 business day.</div>';
+}
+function submitNewAccount() {
+  let ok = true;
+  const name = val("n-name"), ssn = val("n-ssn"), dob = val("n-dob"),
+        email = val("n-email"), phone = val("n-phone"), addr = val("n-address"),
+        city = val("n-city"), zip = val("n-zip"), depRaw = val("n-deposit");
+  ok = setInvalid("n-name", !name) && ok;
+  ok = setInvalid("n-ssn", !/^\d{3}-?\d{2}-?\d{4}$/.test(ssn)) && ok;
+  ok = setInvalid("n-dob", !dob) && ok;
+  ok = setInvalid("n-email", !/.+@.+\..+/.test(email)) && ok;
+  ok = setInvalid("n-phone", phone.replace(/\D/g, "").length < 7) && ok;
+  ok = setInvalid("n-address", !addr) && ok;
+  ok = setInvalid("n-city", !city) && ok;
+  ok = setInvalid("n-zip", !/^\d{5}(-\d{4})?$/.test(zip)) && ok;
+  let dep = 0;
+  if (depRaw) { dep = parseAmt(depRaw); ok = setInvalid("n-deposit", !(dep > 0)) && ok; }
+  if (!ok) return;
+  const acctNum = String(Math.floor(1000 + Math.random() * 9000));
+  const type = document.getElementById("n-type").selectedOptions[0].text;
+  showAccountSuccess([
+    ["Name", name],
+    ["Account type", type],
+    ["Account number", "\u2022\u2022" + acctNum],
+    ["Initial deposit", dep > 0 ? fmt(dep) : "\u2014"],
+    ["Reference", refNum()],
+    ["Date", todayStr()]
+  ]);
+}
+function showAccountSuccess(rows) {
+  document.getElementById("modal-title").textContent = "Confirmation";
+  const detail = rows.map(r => '<div class="row"><span>' + r[0] + '</span><span>' + escapeHtml(r[1]) + '</span></div>').join("");
+  document.getElementById("modal-content").innerHTML =
+    '<div class="modal-body"><div class="success-wrap">' +
+    '<div class="success-check">\u2713</div><h3>Account Opened</h3>' +
+    '<div style="color:var(--muted);font-size:.92rem;margin-bottom:1.2rem">Your new Alora Bank account is ready to use.</div>' +
+    '<div class="success-details">' + detail + '</div>' +
+    '</div></div>' +
+    '<div class="modal-foot"><button class="btn" style="flex:1" onclick="closeModal()">Done</button></div>';
 }
 function toggleCheckField(v) { document.getElementById("check-wrap").style.display = v === "Check" ? "block" : "none"; }
 
@@ -356,6 +461,43 @@ function addTxn(desc, amtText, positive) {
   customTxns.unshift(t);
   renderTxn(t.desc, t.amtText, t.positive, t.date);
   persist();
+}
+
+const HOLDINGS = [
+  { sym: "AAPL", name: "Apple Inc.", shares: 40, avg: 232.50, price: 251.30, chg: 1.24 },
+  { sym: "NVDA", name: "NVIDIA Corp.", shares: 60, avg: 141.20, price: 178.45, chg: 2.08 },
+  { sym: "MSFT", name: "Microsoft Corp.", shares: 25, avg: 428.00, price: 512.75, chg: 0.64 },
+  { sym: "BTC", name: "Bitcoin", shares: 0.35, avg: 67400, price: 82575, chg: -1.42 },
+  { sym: "ETH", name: "Ethereum", shares: 4.2, avg: 3120, price: 3845, chg: -0.87 }
+];
+function showInvestments() {
+  document.getElementById("dash-view").style.display = "none";
+  document.getElementById("invest-view").style.display = "block";
+  renderHoldings();
+  window.scrollTo(0, 0);
+}
+function showDashboard() {
+  document.getElementById("invest-view").style.display = "none";
+  document.getElementById("dash-view").style.display = "block";
+  window.scrollTo(0, 0);
+}
+function renderHoldings() {
+  let total = 0, cost = 0;
+  const rows = HOLDINGS.map(h => {
+    const value = h.shares * h.price, c = h.shares * h.avg;
+    total += value; cost += c;
+    const cls = h.chg >= 0 ? "up" : "down";
+    const sign = h.chg >= 0 ? "+" : "";
+    return '<div class="holding"><div><div class="sym">' + h.sym +
+      '<small>' + h.name + ' \u00b7 ' + h.shares + ' shares</small></div></div>' +
+      '<div class="hval">' + fmt(value) +
+      '<small class="' + cls + '">' + sign + h.chg.toFixed(2) + '% today</small></div></div>';
+  }).join("");
+  document.getElementById("holdings").innerHTML = rows;
+  document.getElementById("inv-total").textContent = fmt(total);
+  const pl = total - cost, pct = pl / cost * 100;
+  const plTxt = (pl >= 0 ? "+" : "\u2212") + fmt(Math.abs(pl)) + " (" + (pct >= 0 ? "+" : "\u2212") + Math.abs(pct).toFixed(2) + "%)";
+  document.getElementById("inv-pl").innerHTML = 'Total return <span class="' + (pl >= 0 ? "up" : "down") + '">' + plTxt + "</span>";
 }
 
 restore();
