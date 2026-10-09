@@ -166,6 +166,10 @@
       <div class="amount" id="inv-total">$0.00</div>
       <div class="avail" id="inv-pl"></div>
     </div>
+    <div class="actions">
+      <button class="action-btn" onclick="openModal('invdeposit')">Deposit</button>
+      <button class="action-btn" onclick="openModal('invwithdraw')">Withdraw</button>
+    </div>
     <div class="txns">
       <h3>Holdings</h3>
       <div id="holdings"></div>
@@ -229,9 +233,9 @@ const refNum = () => "ALB" + Date.now().toString().slice(-8);
 const parseAmt = s => { const v = parseFloat(String(s).replace(/[$,\s]/g, "")); return isNaN(v) ? 0 : v; };
 
 function openModal(type) {
-  const titles = { transfer: "Transfer Funds", billpay: "Pay a Bill", deposit: "Make a Deposit", newaccount: "Open New Account" };
+  const titles = { transfer: "Transfer Funds", billpay: "Pay a Bill", deposit: "Make a Deposit", newaccount: "Open New Account", invdeposit: "Deposit Crypto", invwithdraw: "Withdraw Crypto" };
   document.getElementById("modal-title").textContent = titles[type];
-  const builders = { transfer: transferForm, billpay: billpayForm, deposit: depositForm, newaccount: newAccountForm };
+  const builders = { transfer: transferForm, billpay: billpayForm, deposit: depositForm, newaccount: newAccountForm, invdeposit: invDepositForm, invwithdraw: invWithdrawForm };
   document.getElementById("modal-content").innerHTML = builders[type]();
   document.getElementById("modal-overlay").classList.add("open");
   document.body.style.overflow = "hidden";
@@ -373,6 +377,76 @@ function showAccountSuccess(rows) {
     '<div class="modal-body"><div class="success-wrap">' +
     '<div class="success-check">\u2713</div><h3>Account Opened</h3>' +
     '<div style="color:var(--muted);font-size:.92rem;margin-bottom:1.2rem">Your new Alora Bank account is ready to use.</div>' +
+    '<div class="success-details">' + detail + '</div>' +
+    '</div></div>' +
+    '<div class="modal-foot"><button class="btn" style="flex:1" onclick="closeModal()">Done</button></div>';
+}
+
+/* ---- Investments: crypto deposit / withdraw ---- */
+let depositAddr = "";
+function randomBtcAddress() {
+  const chars = "qpzry9x8gf2tvdw0s3jn54khce6mua7l";
+  let s = "bc1q";
+  for (let i = 0; i < 38; i++) s += chars[Math.floor(Math.random() * chars.length)];
+  return s;
+}
+function invDepositForm() {
+  depositAddr = randomBtcAddress();
+  const qr = "https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=" + encodeURIComponent(depositAddr);
+  return '<div class="modal-body">' +
+    '<div style="text-align:center;margin-bottom:1rem"><img src="' + qr + '" alt="Deposit QR code" style="width:220px;height:220px;max-width:100%;border-radius:12px;border:1px solid #e2e8f0"></div>' +
+    '<div class="success-details" style="text-align:center"><div style="font-size:.78rem;color:var(--muted);margin-bottom:.35rem">Bitcoin deposit address</div>' +
+    '<div style="font-weight:700;color:var(--navy);word-break:break-all;font-size:.85rem">' + depositAddr + '</div></div>' +
+    fieldHTML("dep-amount", "Amount to deposit (USD)",
+      '<input id="dep-amount" inputmode="decimal" placeholder="$0.00">', "Enter an amount greater than $0.") +
+    '</div>' +
+    '<div class="modal-foot"><button class="btn-secondary" onclick="closeModal()">Cancel</button>' +
+    '<button class="btn" onclick="submitInvDeposit()">Confirm Deposit</button></div>' +
+    '<div class="secure-note">Send BTC to the address above. Deposits credit after 2 network confirmations.</div>';
+}
+function submitInvDeposit() {
+  const amt = parseAmt(val("dep-amount"));
+  if (!setInvalid("dep-amount", !(amt > 0))) return;
+  showCustomSuccess("Deposit Request Created", "Send the exact amount to the address shown.", [
+    ["Amount", fmt(amt)],
+    ["Address", "\u2022\u2022\u2022" + depositAddr.slice(-8)],
+    ["Reference", refNum()],
+    ["Date", todayStr()]
+  ]);
+}
+function invWithdrawForm() {
+  return '<div class="modal-body">' +
+    fieldHTML("w-addr", "Bitcoin address",
+      '<input id="w-addr" placeholder="bc1q..." autocomplete="off" style="font-size:.85rem">', "Enter a valid Bitcoin address.") +
+    '<div class="form-row">' +
+    fieldHTML("w-amount", "Withdrawal amount (USD)",
+      '<input id="w-amount" inputmode="decimal" placeholder="$0.00">', "Enter an amount greater than $0.") +
+    fieldHTML("w-note", "Note (optional)", '<input id="w-note" placeholder="Memo">') +
+    '</div></div>' +
+    '<div class="modal-foot"><button class="btn-secondary" onclick="closeModal()">Cancel</button>' +
+    '<button class="btn" onclick="submitInvWithdraw()">Submit Withdrawal</button></div>' +
+    '<div class="secure-note">Withdrawals are processed within 1 business day. Network fees may apply.</div>';
+}
+function submitInvWithdraw() {
+  let ok = true;
+  const addr = val("w-addr"), amt = parseAmt(val("w-amount"));
+  ok = setInvalid("w-addr", !/^(bc1|[13])[a-zA-HJ-NP-Z0-9]{25,59}$/.test(addr)) && ok;
+  ok = setInvalid("w-amount", !(amt > 0)) && ok;
+  if (!ok) return;
+  showCustomSuccess("Withdrawal Submitted", "Your withdrawal is being processed.", [
+    ["To address", addr.slice(0, 12) + "\u2022\u2022\u2022" + addr.slice(-6)],
+    ["Amount", fmt(amt)],
+    ["Reference", refNum()],
+    ["Date", todayStr()]
+  ]);
+}
+function showCustomSuccess(heading, subline, rows) {
+  document.getElementById("modal-title").textContent = "Confirmation";
+  const detail = rows.map(r => '<div class="row"><span>' + r[0] + '</span><span>' + escapeHtml(r[1]) + '</span></div>').join("");
+  document.getElementById("modal-content").innerHTML =
+    '<div class="modal-body"><div class="success-wrap">' +
+    '<div class="success-check">\u2713</div><h3>' + heading + '</h3>' +
+    '<div style="color:var(--muted);font-size:.92rem;margin-bottom:1.2rem">' + subline + '</div>' +
     '<div class="success-details">' + detail + '</div>' +
     '</div></div>' +
     '<div class="modal-foot"><button class="btn" style="flex:1" onclick="closeModal()">Done</button></div>';
